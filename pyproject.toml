@@ -1,6 +1,6 @@
 [project]
 name = "customer-discovery-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Scan online communities (Reddit, +) for maker pain points; cluster into a weekly digest."
 authors = [{ name = "Alex Ji", email = "alex@vibexforge.com" }]
 license = { text = "MIT" }
