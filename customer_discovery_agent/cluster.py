@@ -8,15 +8,29 @@ Two modes:
 
 The output is small (3-7 clusters with ≤5 sample URLs each), so the digest
 fits in a single email or markdown report.
+
+v0.2: LLM call goes through solo_founder_os.AnthropicClient — token usage
+auto-logged to ~/.customer-discovery-agent/usage.jsonl. cost-audit-agent
+picks it up in monthly reports.
 """
 from __future__ import annotations
 import json
 import os
+import pathlib
 import re
 from collections import defaultdict
 from typing import Optional
 
+from solo_founder_os.anthropic_client import (
+    AnthropicClient,
+    DEFAULT_HAIKU_MODEL,
+)
+
 from .types import Cluster, PainPoint
+
+
+USAGE_LOG_PATH = (pathlib.Path.home()
+                  / ".customer-discovery-agent" / "usage.jsonl")
 
 
 def heuristic_cluster(pain_points: list[PainPoint],
@@ -52,15 +66,20 @@ def heuristic_cluster(pain_points: list[PainPoint],
 
 
 def llm_cluster(pain_points: list[PainPoint],
-                 max_clusters: int = 7) -> Optional[list[Cluster]]:
-    """Use Claude Haiku to cluster. Returns None on any failure."""
+                 max_clusters: int = 7,
+                 *, client: AnthropicClient | None = None) -> Optional[list[Cluster]]:
+    """Use Claude Haiku to cluster. Returns None on any failure.
+
+    `client` is injectable for tests. In production, leave it None and the
+    function constructs an AnthropicClient pointed at the CDA usage log.
+    """
     if not pain_points:
         return []
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        return None
-    try:
-        from anthropic import Anthropic
-    except ImportError:
+
+    if client is None:
+        client = AnthropicClient(usage_log_path=USAGE_LOG_PATH)
+
+    if not client.configured:
         return None
 
     # Pack the list as a numbered list for the model
@@ -80,13 +99,14 @@ def llm_cluster(pain_points: list[PainPoint],
         f"into the input list.\n\nInput:\n" + "\n".join(snippets)
     )
 
+    resp, err = client.messages_create(
+        model=DEFAULT_HAIKU_MODEL, max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    if err is not None:
+        return None
+    text = AnthropicClient.extract_text(resp)
     try:
-        client = Anthropic()
-        resp = client.messages.create(
-            model="claude-haiku-4-5", max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = "".join(b.text for b in resp.content if b.type == "text").strip()
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```\s*$", "", text).strip()
         data = json.loads(text)
@@ -112,9 +132,14 @@ def llm_cluster(pain_points: list[PainPoint],
 
 
 def cluster(pain_points: list[PainPoint],
-              max_clusters: int = 7) -> list[Cluster]:
-    """Combined: try LLM, fall back to heuristic."""
-    llm = llm_cluster(pain_points, max_clusters=max_clusters)
+              max_clusters: int = 7,
+              *, client: AnthropicClient | None = None) -> list[Cluster]:
+    """Combined: try LLM, fall back to heuristic.
+
+    `client` is forwarded to llm_cluster — pass a pre-loaded
+    AnthropicClient in tests, leave None in production.
+    """
+    llm = llm_cluster(pain_points, max_clusters=max_clusters, client=client)
     if llm is not None:
         return llm
     return heuristic_cluster(pain_points, max_clusters=max_clusters)

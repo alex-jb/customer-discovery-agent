@@ -1,6 +1,6 @@
 [project]
 name = "customer-discovery-agent"
-version = "0.1.1"
+version = "0.2.0"
 description = "Scan online communities (Reddit, +) for maker pain points; cluster into a weekly digest."
 authors = [{ name = "Alex Ji", email = "alex@vibexforge.com" }]
 license = { text = "MIT" }
@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.9,<3",
     "praw>=7.7",
     "anthropic>=0.40",
+    "solo-founder-os>=0.1.0",
 ]
 
 [project.optional-dependencies]

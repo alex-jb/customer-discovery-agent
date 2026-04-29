@@ -14,6 +14,8 @@ from customer_discovery_agent.cluster import (
     heuristic_cluster, llm_cluster, cluster as combined_cluster,
 )
 from customer_discovery_agent.types import PainPoint
+from solo_founder_os.anthropic_client import AnthropicClient
+from solo_founder_os.testing import fake_anthropic, fake_anthropic_raises
 
 
 def _pp(id_="a", title="t", body="b", score=10, kws=None):
@@ -31,11 +33,11 @@ def _pp(id_="a", title="t", body="b", score=10, kws=None):
     )
 
 
-def _fake_anthropic(text):
-    block = MagicMock(); block.text = text; block.type = "text"
-    resp = MagicMock(); resp.content = [block]
-    client = MagicMock(); client.messages.create.return_value = resp
-    return client
+def _client_with_fake(monkeypatch, fake_sdk_client) -> AnthropicClient:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    c = AnthropicClient(usage_log_path=None)
+    c._client = fake_sdk_client
+    return c
 
 
 # ─── heuristic_cluster ────────────────────────────────────────
@@ -92,59 +94,53 @@ def test_llm_returns_empty_for_empty_input(monkeypatch):
 
 
 def test_llm_parses_structured_json(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
     pps = [_pp(id_="a"), _pp(id_="b"), _pp(id_="c")]
-    fake = _fake_anthropic(json.dumps({
+    fake = fake_anthropic(json.dumps({
         "clusters": [{
             "summary": "Launch tooling pain",
             "representative_quote": "I wish PH had a better preview",
             "member_indices": [0, 1, 2],
         }]
     }))
-    with patch("anthropic.Anthropic", return_value=fake):
-        out = llm_cluster(pps)
+    client = _client_with_fake(monkeypatch, fake)
+    out = llm_cluster(pps, client=client)
     assert len(out) == 1
     assert out[0].summary == "Launch tooling pain"
     assert out[0].n_posts == 3
 
 
 def test_llm_strips_markdown_fence(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    fake = _fake_anthropic(
+    fake = fake_anthropic(
         '```json\n{"clusters":[{"summary":"X","representative_quote":"Y","member_indices":[0]}]}\n```'
     )
-    with patch("anthropic.Anthropic", return_value=fake):
-        out = llm_cluster([_pp()])
+    client = _client_with_fake(monkeypatch, fake)
+    out = llm_cluster([_pp()], client=client)
     assert len(out) == 1
 
 
 def test_llm_returns_none_on_unparseable(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    fake = _fake_anthropic("not json at all")
-    with patch("anthropic.Anthropic", return_value=fake):
-        assert llm_cluster([_pp()]) is None
+    fake = fake_anthropic("not json at all")
+    client = _client_with_fake(monkeypatch, fake)
+    assert llm_cluster([_pp()], client=client) is None
 
 
 def test_llm_returns_none_on_exception(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    fake = MagicMock()
-    fake.messages.create.side_effect = Exception("rate limit")
-    with patch("anthropic.Anthropic", return_value=fake):
-        assert llm_cluster([_pp()]) is None
+    fake = fake_anthropic_raises(Exception("rate limit"))
+    client = _client_with_fake(monkeypatch, fake)
+    assert llm_cluster([_pp()], client=client) is None
 
 
 def test_llm_skips_clusters_with_no_valid_indices(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
     # member_indices all out of range → cluster gets skipped
-    fake = _fake_anthropic(json.dumps({
+    fake = fake_anthropic(json.dumps({
         "clusters": [
             {"summary": "valid", "representative_quote": "x", "member_indices": [0]},
             {"summary": "out_of_range", "representative_quote": "y",
              "member_indices": [99, 100]},
         ]
     }))
-    with patch("anthropic.Anthropic", return_value=fake):
-        out = llm_cluster([_pp(id_="a")])
+    client = _client_with_fake(monkeypatch, fake)
+    out = llm_cluster([_pp(id_="a")], client=client)
     assert len(out) == 1
     assert out[0].summary == "valid"
 
@@ -152,21 +148,18 @@ def test_llm_skips_clusters_with_no_valid_indices(monkeypatch):
 # ─── combined cluster() ───────────────────────────────────────
 
 def test_combined_uses_llm_when_available(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    fake = _fake_anthropic(json.dumps({
+    fake = fake_anthropic(json.dumps({
         "clusters": [{"summary": "from llm", "representative_quote": "q",
                        "member_indices": [0]}]
     }))
-    with patch("anthropic.Anthropic", return_value=fake):
-        out = combined_cluster([_pp(kws=["i wish"])])
+    client = _client_with_fake(monkeypatch, fake)
+    out = combined_cluster([_pp(kws=["i wish"])], client=client)
     assert out[0].summary == "from llm"
 
 
 def test_combined_falls_back_to_heuristic_on_llm_failure(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    fake = MagicMock()
-    fake.messages.create.side_effect = Exception("network")
-    with patch("anthropic.Anthropic", return_value=fake):
-        out = combined_cluster([_pp(kws=["i wish"])])
+    fake = fake_anthropic_raises(Exception("network"))
+    client = _client_with_fake(monkeypatch, fake)
+    out = combined_cluster([_pp(kws=["i wish"])], client=client)
     # Heuristic groups by keyword
     assert "i wish" in out[0].summary

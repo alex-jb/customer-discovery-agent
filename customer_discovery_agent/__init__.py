@@ -4,7 +4,7 @@ from .reddit_scraper import scrape_many, scrape_subreddit, DEFAULT_PAIN_KEYWORDS
 from .cluster import cluster, heuristic_cluster, llm_cluster
 from .digest import render_markdown
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 __all__ = [
     "Cluster", "Digest", "PainPoint",
     "scrape_many", "scrape_subreddit", "DEFAULT_PAIN_KEYWORDS",
