@@ -1,6 +1,6 @@
 [project]
 name = "customer-discovery-agent"
-version = "0.3.0"
+version = "0.4.0"
 description = "Scan online communities (Reddit, +) for maker pain points; cluster into a weekly digest."
 authors = [{ name = "Alex Ji", email = "alex@vibexforge.com" }]
 license = { text = "MIT" }
@@ -28,14 +28,17 @@ classifiers = [
 keywords = ["reddit", "scraper", "customer-discovery", "claude", "clustering", "indie"]
 
 [project.optional-dependencies]
+mcp = ["mcp>=1.0"]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "build>=1.2",
+    "mcp>=1.0",
 ]
 
 [project.scripts]
 customer-discovery-agent = "customer_discovery_agent.__main__:main"
+customer-discovery-mcp = "customer_discovery_agent.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/alex-jb/customer-discovery-agent"

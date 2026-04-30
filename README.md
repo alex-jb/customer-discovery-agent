@@ -103,6 +103,27 @@ Solo founders make two systematic mistakes about user research:
 
 This agent runs as a Sunday night cron, drops a digest in your inbox Monday morning, and your guesses become **literal quotes from your future users**. ~$0.001 / scan in template mode, ~$0.05 / scan with LLM clustering on a busy week.
 
+## MCP server (Claude Desktop / Cursor / Zed)
+
+Ask "scan IndieHackers for pain points this week" inline from your AI assistant.
+
+```bash
+pip install 'customer-discovery-agent[mcp]'
+```
+
+```json
+{
+  "mcpServers": {
+    "customer-discovery": {
+      "command": "customer-discovery-mcp",
+      "env": { "ANTHROPIC_API_KEY": "..." }
+    }
+  }
+}
+```
+
+Tools: `scan(subreddits, hours, …)` · `latest_digest(directory)` · `keyword_list()`
+
 ## License
 
 MIT — use it, fork it, add IndieHackers and 即刻 to it.

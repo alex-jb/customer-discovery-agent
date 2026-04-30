@@ -103,6 +103,27 @@ customer-discovery-agent scan
 
 这个 agent 周日晚上 cron 跑一下,周一早上你 inbox 就有一份 digest,你的猜测变成**未来用户的原话**。模板模式下 ~$0.001 / 次扫描,LLM 聚类模式忙周也就 ~$0.05。
 
+## MCP server(Claude Desktop / Cursor / Zed)
+
+让 AI 助手直接问 "扫一下 IndieHackers 这周的痛点"。
+
+```bash
+pip install 'customer-discovery-agent[mcp]'
+```
+
+```json
+{
+  "mcpServers": {
+    "customer-discovery": {
+      "command": "customer-discovery-mcp",
+      "env": { "ANTHROPIC_API_KEY": "..." }
+    }
+  }
+}
+```
+
+工具:`scan(subreddits, hours, …)` · `latest_digest(directory)` · `keyword_list()`
+
 ## 协议
 
 MIT —— 用它,fork 它,把 IndieHackers 和即刻也加进去。
