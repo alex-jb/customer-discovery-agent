@@ -65,6 +65,31 @@ def heuristic_cluster(pain_points: list[PainPoint],
     return out
 
 
+CLUSTER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "clusters": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "summary": {"type": "string"},
+                    "representative_quote": {"type": "string"},
+                    "member_indices": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                    },
+                },
+                "required": ["summary", "representative_quote", "member_indices"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["clusters"],
+    "additionalProperties": False,
+}
+
+
 def llm_cluster(pain_points: list[PainPoint],
                  max_clusters: int = 7,
                  *, client: AnthropicClient | None = None) -> Optional[list[Cluster]]:
@@ -72,6 +97,10 @@ def llm_cluster(pain_points: list[PainPoint],
 
     `client` is injectable for tests. In production, leave it None and the
     function constructs an AnthropicClient pointed at the CDA usage log.
+
+    v0.3: uses solo_founder_os.messages_create_json — guaranteed valid JSON
+    output. Eliminates the markdown-fence-stripping + json.loads-with-fallback
+    path that v0.2 had.
     """
     if not pain_points:
         return []
@@ -91,26 +120,20 @@ def llm_cluster(pain_points: list[PainPoint],
 
     prompt = (
         f"You are clustering {len(snippets)} maker pain points. Group into "
-        f"{max_clusters} or fewer themes. Output STRICT JSON of shape:\n"
-        f"{{\"clusters\": [{{\"summary\": \"...\", \"representative_quote\": "
-        f"\"...\", \"member_indices\": [0, 5, 12]}}]}}\n\n"
+        f"{max_clusters} or fewer themes. Output JSON conforming to the schema:\n"
+        f"  clusters: array of {{summary, representative_quote, member_indices}}\n"
         f"Each summary ≤ 80 chars. representative_quote is a verbatim ≤120-char "
         f"excerpt from one of the member posts. member_indices are 0-based "
         f"into the input list.\n\nInput:\n" + "\n".join(snippets)
     )
 
-    resp, err = client.messages_create(
-        model=DEFAULT_HAIKU_MODEL, max_tokens=1500,
+    data, err = client.messages_create_json(
+        schema=CLUSTER_SCHEMA,
+        model=DEFAULT_HAIKU_MODEL,
+        max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
     )
-    if err is not None:
-        return None
-    text = AnthropicClient.extract_text(resp)
-    try:
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```\s*$", "", text).strip()
-        data = json.loads(text)
-    except Exception:
+    if err is not None or data is None:
         return None
 
     out: list[Cluster] = []

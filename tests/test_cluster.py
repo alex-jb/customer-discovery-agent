@@ -109,16 +109,9 @@ def test_llm_parses_structured_json(monkeypatch):
     assert out[0].n_posts == 3
 
 
-def test_llm_strips_markdown_fence(monkeypatch):
-    fake = fake_anthropic(
-        '```json\n{"clusters":[{"summary":"X","representative_quote":"Y","member_indices":[0]}]}\n```'
-    )
-    client = _client_with_fake(monkeypatch, fake)
-    out = llm_cluster([_pp()], client=client)
-    assert len(out) == 1
-
-
 def test_llm_returns_none_on_unparseable(monkeypatch):
+    """v0.3 uses structured outputs; if API returns non-JSON despite the
+    beta flag, llm_cluster returns None (caller falls back to heuristic)."""
     fake = fake_anthropic("not json at all")
     client = _client_with_fake(monkeypatch, fake)
     assert llm_cluster([_pp()], client=client) is None
