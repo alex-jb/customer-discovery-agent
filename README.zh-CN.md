@@ -5,6 +5,7 @@
 > 扫线上社区找**独立开发者真实痛点**，聚类成主题，每周一份 digest 告诉你未来用户在真正吐槽什么。
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/customer-discovery-agent.svg)](https://pypi.org/project/customer-discovery-agent/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](#)
 [![Tests](https://img.shields.io/badge/tests-13%20passing-brightgreen.svg)](#)
 [![Sources](https://img.shields.io/badge/sources-Reddit_(v0.1)-FF4500.svg)](#)
