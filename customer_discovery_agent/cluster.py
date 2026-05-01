@@ -162,4 +162,15 @@ def cluster(pain_points: list[PainPoint],
     llm = llm_cluster(pain_points, max_clusters=max_clusters, client=client)
     if llm is not None:
         return llm
+    # Reflexion: heuristic fallback means LLM was unavailable or returned
+    # garbage. Log so future runs can adapt prompts. Best-effort.
+    if pain_points:
+        try:
+            from solo_founder_os import log_outcome
+            log_outcome(".customer-discovery-agent", task="cluster",
+                        outcome="PARTIAL",
+                        signal=("LLM cluster returned None — fell back to "
+                                "heuristic keyword grouping"))
+        except Exception:
+            pass
     return heuristic_cluster(pain_points, max_clusters=max_clusters)
