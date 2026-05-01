@@ -14,6 +14,7 @@ auto-logged to ~/.customer-discovery-agent/usage.jsonl. cost-audit-agent
 picks it up in monthly reports.
 """
 from __future__ import annotations
+import json
 import pathlib
 from collections import defaultdict
 from typing import Optional
@@ -148,6 +149,28 @@ def llm_cluster(pain_points: list[PainPoint],
             sample_urls=[m.url for m in
                           sorted(members, key=lambda p: p.score, reverse=True)[:5]],
         ))
+    # L3 skill library: record this clustering as a successful LLM example.
+    # Inputs are the high-level shape (n pain points, source mix), not the
+    # raw text — keeps the example file compact + privacy-safe.
+    if out:
+        try:
+            from solo_founder_os import record_example
+            sources = sorted({pp.source for pp in pain_points})
+            record_example(
+                "cluster-pain-points",
+                inputs={
+                    "n_pain_points": len(pain_points),
+                    "max_clusters": max_clusters,
+                    "sources": ",".join(sources),
+                },
+                output=json.dumps(
+                    [{"summary": c.summary, "n_posts": c.n_posts}
+                     for c in out],
+                    ensure_ascii=False),
+                note=f"LLM produced {len(out)} clusters",
+            )
+        except Exception:
+            pass
     return out
 
 
