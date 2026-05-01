@@ -15,7 +15,6 @@ Reddit adapter). Without them, returns []. No-op-friendly.
 """
 from __future__ import annotations
 import os
-import re
 from datetime import datetime, timedelta, timezone
 
 from .types import PainPoint

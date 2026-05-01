@@ -4,9 +4,7 @@ import json
 import os
 import sys
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -53,7 +51,6 @@ def test_heuristic_groups_by_first_keyword():
         _pp(id_="c", title="z", score=10, kws=["frustrated"]),
     ]
     out = heuristic_cluster(pps)
-    by_summary = {c.summary: c for c in out}
     # "i wish" group has 2 members, picks higher-score post as rep
     assert any(c.n_posts == 2 and "i wish" in c.summary for c in out)
     assert any(c.n_posts == 1 and "frustrated" in c.summary for c in out)

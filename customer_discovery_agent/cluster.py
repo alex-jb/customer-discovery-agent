@@ -14,10 +14,7 @@ auto-logged to ~/.customer-discovery-agent/usage.jsonl. cost-audit-agent
 picks it up in monthly reports.
 """
 from __future__ import annotations
-import json
-import os
 import pathlib
-import re
 from collections import defaultdict
 from typing import Optional
 
