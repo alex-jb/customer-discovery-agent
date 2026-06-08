@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -34,7 +35,7 @@ def test_explodes_each_weakness_into_painpoint(monkeypatch):
             "project_title": "AI Receipt Splitter",
             "creator": "u_1",
             "plays": 50, "upvotes": 12,
-            "created_at": "2026-04-29T12:00:00+00:00",
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
             "weaknesses": [
                 "Onboarding is confusing",
                 "Mobile UI is broken on small screens",
@@ -100,7 +101,7 @@ def test_handles_management_api_dict_response(monkeypatch):
         {
             "project_id": "p1", "project_title": "X", "creator": "u_1",
             "plays": 1, "upvotes": 1,
-            "created_at": "2026-04-29T00:00:00+00:00",
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat(),
             "weaknesses": ["something"],
         }
     ]})
