@@ -116,11 +116,17 @@ def llm_cluster(pain_points: list[PainPoint],
         snippets.append(f"[{i}] r/{pp.url.split('/r/')[-1].split('/')[0]} "
                           f"({pp.score} upvotes): {pp.title} — {body_excerpt}")
 
+    # 2026-06-08: Aidan Gomez (Cohere) citation pattern — every summary must
+    # include a source tag [src:subreddit/index] so downstream consumers can
+    # verify provenance. Reduces hallucination + makes output enterprise-grade.
     prompt = (
         f"You are clustering {len(snippets)} maker pain points. Group into "
         f"{max_clusters} or fewer themes. Output JSON conforming to the schema:\n"
         f"  clusters: array of {{summary, representative_quote, member_indices}}\n"
-        f"Each summary ≤ 80 chars. representative_quote is a verbatim ≤120-char "
+        f"Each summary ≤ 80 chars AND must end with a source tag "
+        f"in the form [src:r/SUBREDDIT/IDX] using the most-representative "
+        f"member's subreddit + 0-based index — e.g. [src:r/SaaS/14].\n"
+        f"representative_quote is a verbatim ≤120-char "
         f"excerpt from one of the member posts. member_indices are 0-based "
         f"into the input list.\n\nInput:\n" + "\n".join(snippets)
     )
